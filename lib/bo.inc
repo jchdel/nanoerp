@@ -119,9 +119,6 @@ _usage() {
 
 ########################################################################
 
-[ $# -gt 0 ] && ACTION=$1 && shift || ACTION=error
-[ $# -gt 0 ] && NAME=$1 && shift
-[ $# -gt 0 ] && PARAMS=$*
 FLAG0=1
 case $ACTION in
 	"add")

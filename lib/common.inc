@@ -20,3 +20,7 @@ LIB=$BIN/../lib
 [ -f $ETC/${ME}.conf ] && . $ETC/${ME}.conf
 [ -z "$VAR" ] && VAR=$PWD/var
 mkdir -p $VAR/documents/drafts $VAR/documents/pdf
+
+[ $# -gt 0 ] && ACTION=$1 && shift
+[ $# -gt 0 ] && NAME=$1 && shift
+[ $# -gt 0 ] && PARAMS=$*

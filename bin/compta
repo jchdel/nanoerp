@@ -3,10 +3,6 @@
 [ -f $(dirname $0)/../lib/common.inc ] && . $(dirname $0)/../lib/common.inc || ( echo "LIB not found!" ; exit 1 ; )
 . $LIB/compta.inc
 
-[ $# -gt 0 ] && ACTION=$1 && shift
-[ $# -gt 0 ] && NAME=$1 && shift
-[ $# -gt 0 ] && PARAMS=$*
-
 _bilan(){
 	TOTAUX=()
 	GRAND_TOTAL=0
