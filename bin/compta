@@ -1,0 +1,136 @@
+#!/bin/bash
+
+[ -f $(dirname $0)/../lib/common.inc ] && . $(dirname $0)/../lib/common.inc || ( echo "LIB not found!" ; exit 1 ; )
+. $LIB/compta.inc
+
+[ $# -gt 0 ] && ACTION=$1 && shift
+[ $# -gt 0 ] && NAME=$1 && shift
+[ $# -gt 0 ] && PARAMS=$*
+
+_bilan(){
+	TOTAUX=()
+	GRAND_TOTAL=0
+	for i in {1..7}
+	do
+		TOTAUX[$i]=0
+		cd $BOOK/$i
+		for j in *.csv
+		do
+			TOTAUX[$i]=$(echo "${TOTAUX[$i]}+$(_balance $j)"|bc)
+		done
+		GRAND_TOTAL=$(echo "$GRAND_TOTAL+${TOTAUX[$i]}"|bc)
+		echo "Classe $i: ${TOTAUX[$i]}"
+	done
+	echo "Grand total: $GRAND_TOTAL"
+}
+
+_journaux(){
+	cd $JOURNALS
+	for i in *.csv
+	do
+		BALANCE=$(_balance $i)
+		NAME=$(echo $i|cut -d. -f1)
+		echo "$NAME: $BALANCE"
+	done
+}
+
+_comptes(){
+	cd $BOOK
+	for i in {1..7}
+	do
+		cd $BOOK/$i
+		echo "Classe $i"
+		for j in *.csv
+		do
+			ID=$(echo $j|cut -d. -f1)
+			NAME="$($BIN/client get $ID name 2>/dev/null)"
+			[ -z "$NAME" ] && NAME="$($BIN/fournisseur get $ID name 2>/dev/null)"
+			#[ -z "$NAME" ] && NAME="$($BIN/???? get $ID name 2>/dev/null)"
+			[ -z "$NAME" ] && NAME="na"
+			echo -n "- compte $ID \"$NAME\" "
+			_balance $j
+		done
+	done
+}
+
+_compte(){
+	for i in $BOOK/*/${NAME}.csv
+	do
+		echo "Compte: $i"
+		echo "TIMESTAMP;SIGN;COUNTERPART;AMOUNT;TEXT"
+		cat $i 2>/dev/null
+		echo -n "Balance: "
+		_balance $i
+	done
+}
+
+_journal(){
+	[ -f ${JOURNALS}/${NAME}.csv ] || _exit 1
+	echo "TIMESTAMP;SIGN;COUNTERPART;AMOUNT;TEXT"
+	cat ${JOURNALS}/${NAME}.csv 2>/dev/null
+	echo -n "Balance: "
+	_balance ${JOURNALS}/${NAME}.csv
+}
+
+_comptoir(){
+	_is_number $NAME
+	[ -z "$PARAMS" ] && PARAMS="cash spending"
+	TIMESTAMP=$(date +%s)
+	# the journal entry
+	echo "${TIMESTAMP};D;cash;${NAME};${PARAMS}" >> ${JOURNALS}/comptoirs.csv
+	# the two book entries
+	echo "${TIMESTAMP};C;a_rembourser;${NAME};${PARAMS}" >> ${BOOK}/6/comptoirs.csv
+	echo "${TIMESTAMP};D;comptoirs;${NAME};${PARAMS}" >> ${BOOK}/5/a_rembourser.csv
+}
+
+_rembourse(){
+	_is_number $NAME
+	[ -z "$PARAMS" ] && PARAMS="cash reimbursement"
+	TIMESTAMP=$(date +%s)
+	# the journal entry
+	echo "${TIMESTAMP};D;cash;${NAME};${PARAMS}" >> ${JOURNALS}/caisse.csv
+	# the two book entries
+	echo "${TIMESTAMP};D;a_rembourser;${NAME};${PARAMS}" >> ${BOOK}/5/caisse.csv
+	echo "${TIMESTAMP};C;caisse;${NAME};${PARAMS}" >> ${BOOK}/5/a_rembourser.csv
+}
+
+_usage() {
+	echo "$ME <ACTION> [<NAME> [<PARAMS>]]"
+	echo
+	echo "ACTION:"
+	echo "bilan        : list classes"
+	echo "journaux     : list journals"
+	echo "journal NAME : list entries for journal NAME"
+	echo "comptes      : list accounts"
+	echo "compte ID    : list movements for account ID"
+	echo "comptoir AMOUNT : register cash buy (small tooling)"
+	echo "rembourse AMOUNT : pay back pending 'a_rembourser'"
+}
+
+case $ACTION in
+	"bilan")
+		_bilan
+		;;
+	"journaux")
+		_journaux
+		;;
+	"journal")
+		_journal
+		;;
+	"comptes")
+		_comptes
+		;;
+	"compte")
+		_compte
+		;;
+	"comptoir")
+		_comptoir
+		;;
+	"rembourse")
+		_rembourse
+		;;
+	*)
+		_usage
+		;;
+esac
+_exit 0

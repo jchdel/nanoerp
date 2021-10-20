@@ -1,0 +1,37 @@
+#!/bin/bash
+
+[ -f $(dirname $0)/../lib/common.inc ] && . $(dirname $0)/../lib/common.inc || ( echo "LIB not found!" ; exit 1 ; )
+. $LIB/bo.inc
+. $LIB/compta.inc
+
+_carburant(){
+	_check
+	# PARAMS = PRICE KM
+	# Ce sont toujours des tickets de caisse de pompes automatiques...
+	# A rembourser au porteur en mode comptoir
+	AMOUNT=$(echo $PARAMS|cut -d\  -f1)
+	_is_number $AMOUNT
+	TEXT=$(echo $PARAMS|cut -d\  -f2)
+	[ -z "$TEXT" ] && TEXT="nc"
+	TIMESTAMP=$(date +%s)
+	# the journal entry
+	echo "${TIMESTAMP};D;${name};${AMOUNT};${TEXT}" >> ${JOURNALS}/carburant.csv
+	# the two book entries
+	echo "${TIMESTAMP};C;a_rembourser;${AMOUNT};carburant ${name}: ${TEXT}" >> ${BOOK}/6/${ME}s.csv
+	echo "${TIMESTAMP};D;${ME}s;${AMOUNT};carburant ${name}: ${TEXT}" >> ${BOOK}/5/a_rembourser.csv
+}
+
+FLAG1=1
+case $ACTION in
+	"carburant")
+		_carburant
+		;;
+	"help") 
+		echo "carburant NAME PRICE [KM] : register oil ticket for NAME or ID"
+		;;
+	*)
+		FLAG1=0
+		;;
+esac
+[ $FLAG0 -eq 0 -a $FLAG1 -eq 0 ] && _usage && _exit 1
+_exit 0

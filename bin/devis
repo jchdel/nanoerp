@@ -1,0 +1,25 @@
+#!/bin/bash
+
+[ -f $(dirname $0)/../lib/common.inc ] && . $(dirname $0)/../lib/common.inc || ( echo "LIB not found!" ; exit 1 ; )
+. $LIB/bo.inc
+
+_providers(){
+	_check
+	# PARAMS = 
+	for i in "${fournisseurs[@]}";do $BIN/fournisseur view $i;echo;done
+}
+
+FLAG1=1
+case $ACTION in
+	"providers")
+		_providers
+		;;
+	"help") 
+		echo "providers NAME : list providers array for NAME or ID"
+		;;
+	*)
+		FLAG1=0
+		;;
+esac
+[ $FLAG0 -eq 0 -a $FLAG1 -eq 0 ] && _usage && _exit 1
+_exit 0	

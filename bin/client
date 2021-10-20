@@ -1,0 +1,88 @@
+#!/bin/bash
+
+[ -f $(dirname $0)/../lib/common.inc ] && . $(dirname $0)/../lib/common.inc || ( echo "LIB not found!" ; exit 1 ; )
+. $LIB/bo.inc
+. $LIB/compta.inc
+
+_proposal(){
+	_check
+	for i in "${proposal[@]}";do echo $i;done
+}
+
+_invoice(){
+	_check
+	AMOUNT=$(echo "${PARAMS}"|cut -d\  -f1)
+	TEXT=$(echo "${PARAMS}"|cut -d\  -f2-)
+	_is_number $AMOUNT 
+	TIMESTAMP=$(date +%s)
+	FACT="${VAR}/documents/drafts/fact-${TIMESTAMP}.draft"
+	# the document
+	date > $FACT
+	echo "Client: $first_name $name ($id)" >> $FACT
+	echo "Description: $TEXT" >> $FACT
+	echo "A Payer: $AMOUNT" >> $FACT
+	# the journal entry
+	echo "${TIMESTAMP};D;${id};${AMOUNT};${FACT};${TEXT}" >> ${JOURNALS}/ventes.csv
+	# the two book entries
+	echo "${TIMESTAMP};C;ventes;${AMOUNT};${TEXT}" >> ${BOOK}/4/${id}.csv
+	echo "${TIMESTAMP};D;${id};${AMOUNT};${TEXT}" >> ${BOOK}/7/ventes.csv
+	# register to customer
+	[ -z "$factures" ] && factures=() && NEXT=0 || NEXT=${#factures[@]}
+	factures[$NEXT]=$FACT
+	sed -i -e '/^factures=/d' ${VAR}/${ME}s/${id}
+	echo "factures=("$(for i in ${factures[@]};do echo -n "\"$i\" " ; done)")" \
+		>> ${VAR}/${ME}s/${id}
+}
+
+_payment(){
+	_check
+	AMOUNT=$(echo "${PARAMS}"|cut -d\  -f1)
+	TEXT=$(echo "${PARAMS}"|cut -d\  -f2-)
+	_is_number $AMOUNT 
+	TIMESTAMP=$(date +%s)
+	# the journal entry
+	echo "${TIMESTAMP};C;${id};${AMOUNT};banque;${TEXT}" >> ${JOURNALS}/payments.csv
+	# the two book entries
+	echo "${TIMESTAMP};D;payments;${AMOUNT};${TEXT}" >> ${BOOK}/4/${id}.csv
+	echo "${TIMESTAMP};C;${id};${AMOUNT};${TEXT}" >> ${BOOK}/5/caisse.csv
+}
+
+FLAG1=1
+case $ACTION in
+	"invoice")
+		_invoice
+		;;
+	"payment")
+		_payment
+		;;
+	"compte")
+		_check
+		echo "Compte: $id"
+		echo "TIMESTAMP;SIGN;COUNTERPART;AMOUNT;TEXT"
+		cat ${BOOK}/4/${id}.csv 2>/dev/null
+		echo -n "Balance: "
+		_balance ${BOOK}/4/${id}.csv
+		;;
+	"balance")
+		_check
+		$BIN/compta compte ${id}
+		;;
+	"proposal")
+		_proposal
+		;;
+	"help") 
+		echo "proposal NAME : list proposal array for NAME or ID"
+		echo "invoice NAME AMOUNT : create a meta-invoice for NAME or ID"
+		echo "payment NAME AMOUNT : register a payment for NAME or ID"
+		echo "balance NAME  : display raw balance of payment for NAME or ID"
+		echo "compte NAME   : display list of movements for NAME or ID"
+		;;
+	*)
+		FLAG1=0
+		;;
+esac
+[ $FLAG0 -eq 0 -a $FLAG1 -eq 0 ] && \
+	_usage && \
+	echo "proposal NAME : list proposal array by NAME or ID" && \
+	_exit 1
+_exit 0	

@@ -1,0 +1,56 @@
+#!/bin/bash
+
+[ -f $(dirname $0)/../lib/common.inc ] && . $(dirname $0)/../lib/common.inc || ( echo "LIB not found!" ; exit 1 ; )
+. $LIB/bo.inc
+
+_devis(){
+	_check
+	[ -z "$client" ] && echo "No linked client" >&2 && _exit 1
+	# PARAMS = montant fichier
+	AMOUNT=$(echo $PARAMS|cut -d\  -f1)
+	_is_number $AMOUNT
+	FILE=$(echo $PARAMS|cut -d\  -f2-)
+	[ -f "$FILE" ] || ( echo "No valid file in '$PARAMS'" >&2 ; _exit 1 ; )
+	devis=$($BIN/devis add "${name}.0")
+	$BIN/devis set $devis client $client
+	$BIN/devis set $devis prix $AMOUNT
+	$BIN/devis set $devis fichier $FILE
+	$BIN/devis set $devis $ME $id
+	$BIN/devis set $devis statut pending
+	$BIN/$ME set $id devis $devis
+	$BIN/$ME set $id statut attente approbation devis $devis
+	$BIN/client log $client Devis $devis emis
+}
+
+_accept(){
+	_check
+	[ -z "$client" ] && echo "No linked client" >&2 && _exit 1
+	# PARAMS = 
+	$BIN/$ME set $id statut devis $devis accepte
+	$BIN/client set $client statut Devis $devis accepte
+	$BIN/client log $client Devis $devis accepte
+	$BIN/devis set $devis statut accepted
+	$BIN/devis log $devis accepted
+	$BIN/$ME set $id devis ""
+	$BIN/$ME set $id devis_accept $devis
+	#$BIN/client devis $client $devis[0] Acceptation devis $devis[1]
+}
+
+FLAG1=1
+case $ACTION in
+	"devis")
+		_devis
+		;;
+	"accept")
+		_accept
+		;;
+	"help") 
+		echo "devis NAME AMOUNT FILE : add/replace offer to NAME or ID"
+		echo "accept NAME    : validate pending offer (devis) for NAME or ID"
+		;;
+	*)
+		FLAG1=0
+		;;
+esac
+[ $FLAG0 -eq 0 -a $FLAG1 -eq 0 ] && _usage && _exit 1
+_exit 0	
