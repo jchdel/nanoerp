@@ -57,15 +57,11 @@ case $ACTION in
 		;;
 	"compte")
 		_check
-		echo "Compte: $id"
-		echo "TIMESTAMP;SIGN;COUNTERPART;AMOUNT;TEXT"
-		cat ${BOOK}/4/${id}.csv 2>/dev/null
-		echo -n "Balance: "
-		_balance ${BOOK}/4/${id}.csv
+		$BIN/compta compte $id
 		;;
 	"balance")
 		_check
-		$BIN/compta compte ${id}
+		_balance ${BOOK}/4/${id}.csv
 		;;
 	"proposal")
 		_proposal
