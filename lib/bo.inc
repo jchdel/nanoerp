@@ -79,6 +79,25 @@ _set(){
 	_get
 }
 
+_append(){
+	[ -z "$PARAMS" ] && echo "Please select an attribute." >&2 && _exit 1
+	_check
+	ATTR=$(echo "${PARAMS}"|cut -d\  -f1)
+	VALUE=$(echo "${PARAMS}"|cut -d\  -f2-)
+	eval 'ARRAY=(${'${ATTR}'[@]})'
+	ARRAY+=("$VALUE")
+	sed -i -e "/^${ATTR}=/d" ${VAR}/${ME}s/$id
+	(
+		echo -n "${ATTR}=("
+		for i in "${ARRAY[@]}"
+		do
+			echo -n "\"$i\" "
+		done
+		echo ")"
+	) >> ${VAR}/${ME}s/$id
+	_get
+}
+
 _client(){
 	_check
 	$BIN/client view $client || _view
@@ -113,6 +132,7 @@ _usage() {
 	echo "list *        : list ${ME}s by NAME"
 	echo "get NAME ATTR : get ATTRibute by NAME or ID"
 	echo "set NAME ATTR VALUE : set ATTRibute=\"VALUE\" by NAME or ID"
+	echo "append NAME ATTR VALUE : append VALUE to ATTR by NAME or ID"
 	echo "client NAME   : view raw attributes of client of NAME or ID"
 	echo "log NAME STRING : add STRING to history of NAME or ID"
 }
@@ -144,6 +164,9 @@ case $ACTION in
 		;;
 	"set")
 		_set $PARAMS
+		;;
+	"append")
+		_append $PARAMS
 		;;
 	"client")
 		_client
