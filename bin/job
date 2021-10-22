@@ -1,0 +1,5 @@
+#!/bin/bash
+
+[ -f $(dirname $0)/../lib/common.inc ] && . $(dirname $0)/../lib/common.inc 
+. $LIB/bo.inc
+

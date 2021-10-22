@@ -26,14 +26,20 @@ _accept(){
 	_check
 	[ -z "$client" ] && echo "No linked client" >&2 && _exit 1
 	# PARAMS = 
+	[ -z "$devis" ] && echo "No pending offer." >&2 && _exit 0
 	$BIN/$ME set $id statut devis $devis accepte
-	$BIN/client set $client statut Devis $devis accepte
-	$BIN/client log $client Devis $devis accepte
+	$BIN/$ME set $id devis ""
+	$BIN/$ME set $id devis_accepted $devis
 	$BIN/devis set $devis statut accepted
 	$BIN/devis log $devis accepted
-	$BIN/$ME set $id devis ""
-	$BIN/$ME set $id devis_accept $devis
-	#$BIN/client devis $client $devis[0] Acceptation devis $devis[1]
+	$BIN/client set $client statut Devis $devis accepte
+	$BIN/client log $client Devis $devis accepte
+	job=$($BIN/job add "${name}.0")
+	$BIN/$ME set $id job $job
+	$BIN/job set $job devis $devis	
+	$BIN/job set $job statut TODO
+	$BIN/job set $job installation $ME
+	$BIN/job set $job client $client
 }
 
 FLAG1=1
