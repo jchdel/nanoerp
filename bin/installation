@@ -38,7 +38,7 @@ _accept(){
 	$BIN/$ME set $id job $job
 	$BIN/job set $job devis $devis	
 	$BIN/job set $job statut TODO
-	$BIN/job set $job installation $ME
+	$BIN/job set $job installation $id
 	$BIN/job set $job client $client
 }
 
